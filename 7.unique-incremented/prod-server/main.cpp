@@ -6,7 +6,7 @@ using namespace nil::crypto3;
 
 using field_type = algebra::curves::pallas::base_field_type;
 
-constexpr std::size_t VALIDATORS_COUNT = 1000;
+constexpr std::size_t VALIDATORS_COUNT = 1000000;
 
 [[circuit]] bool is_unique(
     [[private_input]] std::array<int, VALIDATORS_COUNT> shuffled_validators_indexes)
