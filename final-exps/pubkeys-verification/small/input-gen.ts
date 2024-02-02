@@ -33,17 +33,8 @@ type Inputs = [
   BoolArray,
   IntArray,
   IntArray,
-  BoolArray,
 
   IntArray,
-  IntArray,
-  IntArray,
-  IntArray,
-
-  BlocksArray,
-  IntArray,
-
-  BlocksArray,
   IntArray
 ];
 
@@ -124,66 +115,88 @@ function getIndicesOfElements<T>(sourceArray: T[], targetArray: T[]): number[] {
   return targetArray.map((element) => sourceArray.indexOf(element));
 }
 
+function selectRandomElements<T>(inputArray: T[], n: number): T[] {
+  // Validate input
+  if (n > inputArray.length) {
+    throw new Error("n cannot be greater than the input array length.");
+  }
+  if (n < 0) {
+    throw new Error("n cannot be negative.");
+  }
+
+  // Generate an array of indices from the input array
+  const indices = Array.from(inputArray.keys());
+
+  // Shuffle the indices array
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+
+  // Select the first n indices and sort them to maintain original order
+  const selectedIndices = indices.slice(0, n).sort((a, b) => a - b);
+
+  // Create the output array using the selected indices
+  const outputArray = selectedIndices.map((index) => inputArray[index]);
+
+  return outputArray;
+}
+
 const generateInputs = (
   validators: number,
-  updated_validators: number,
   voters: number,
   epoch: number
 ): Inputs => {
   const validators_pubkeys = generateArrayOfBlocks(validators);
   const balances = generateArrayOfInts(validators);
   const slashed = generateBoolArray(validators, 4); // slashed
-  const activation_epoch = generateArrayOfInts(validators, epoch + 3);
-  const exit_epoch = generateArrayOfInts(validators, epoch + 3);
-  const isValidatorUpdated = generateBoolArray(validators, updated_validators);
+  const activation_epoch = generateArrayOfInts(validators, 1);
+  const exit_epoch = generateArrayOfInts(validators, epoch + 233);
 
-  const updated_effective_balance = generateArrayOfInts(updated_validators);
-  const updated_slashed = generateBoolArray(updated_validators, 1);
-  const updated_activation_epoch = generateArrayOfInts(
-    updated_validators,
-    epoch + 1
-  );
-  const updated_exit_epoch = generateArrayOfInts(updated_validators, epoch + 1);
+  // activation_epoch.array.map((epoch, index) => {
+  //   console.log(epoch.int, exit_epoch.array[index].int);
+  // });
 
-  const active_validators_pubkeys_raw = validators_pubkeys.array.filter(
-    (pubkey, index) => {
-      return (
-        Number(activation_epoch.array[index].int) <= epoch &&
-        Number(exit_epoch.array[index].int) > epoch
-      );
-    }
-  );
+  const activeValidators = validators_pubkeys.array.filter((_, index) => {
+    return (
+      Number(activation_epoch.array[index].int) <= epoch &&
+      Number(exit_epoch.array[index].int) > epoch
+    );
+  });
 
-  const voters_pubkeys_ordered = filterRandomElements(
-    active_validators_pubkeys_raw,
-    voters
-  );
+  console.log("active validators", activeValidators.length);
 
-  const voters_pubkeys = {
-    array: shuffleArray(voters_pubkeys_ordered).map((pubkey) => {
-      return pubkey;
-    }),
-  };
+  const voters_pubkeys_ordered = selectRandomElements(activeValidators, voters);
+  const voters_pubkeys_shuffled = shuffleArray(voters_pubkeys_ordered);
 
-  const voters_indexes = {
-    array: getIndicesOfElements(
-      validators_pubkeys.array,
-      voters_pubkeys.array
-    ).map((index) => ({ int: index.toString() })),
-  };
+  // console.log(
+  //   "shuffled pubkeys",
+  //   voters_pubkeys_shuffled.map((pubkey) => pubkey.vector[0].field)
+  // );
 
-  const voters_sorted_pubkeys = {
-    array: voters_pubkeys.array.slice().sort((a, b) => {
-      return a.vector[0].field.localeCompare(b.vector[0].field);
-    }),
-  };
+  const voters_pubkeys_sorted = voters_pubkeys_shuffled.slice().sort((a, b) => {
+    return a.vector[0].field.localeCompare(b.vector[0].field);
+  });
 
-  const sorted_to_voters_mapping = {
-    array: getIndicesOfElements(
-      voters_pubkeys.array,
-      voters_sorted_pubkeys.array
-    ).map((index) => ({ int: index.toString() })),
-  };
+  // console.log(
+  //   "sorted pubkeys",
+  //   voters_pubkeys_sorted.map((pubkey) => pubkey.vector[0].field)
+  // );
+
+  const voters_indexes = getIndicesOfElements(
+    validators_pubkeys.array,
+    voters_pubkeys_shuffled
+  ).map((index) => ({ int: index.toString() }));
+
+  const voters_sorted_indexes = getIndicesOfElements(
+    voters_pubkeys_sorted,
+    voters_pubkeys_shuffled
+  ).map((index) => ({ int: index.toString() }));
+
+  // console.log(
+  //   "sorted indexes",
+  //   voters_sorted_indexes.map((index) => index.int)
+  // );
 
   const input: Inputs = [
     { int: epoch.toString() },
@@ -192,39 +205,22 @@ const generateInputs = (
     slashed,
     activation_epoch,
     exit_epoch,
-    isValidatorUpdated,
 
-    updated_effective_balance,
-    updated_slashed,
-    updated_activation_epoch,
-    updated_exit_epoch,
-
-    voters_pubkeys,
-    voters_indexes,
-
-    voters_sorted_pubkeys,
-    sorted_to_voters_mapping,
+    // { array: voters_pubkeys_shuffled },
+    { array: voters_indexes },
+    { array: voters_sorted_indexes },
   ];
 
-  console.log(
-    "voters_sorted_pubkeys.length",
-    voters_sorted_pubkeys.array.length
-  );
+  console.log("voters length", voters_sorted_indexes.length);
 
   return input;
 };
 
-const validators = 32;
-const updated_validators = 3;
-const voters = 20;
+const validators = 10;
+const voters = 8;
 const epoch = 3;
 
-const inputsJson = generateInputs(
-  validators,
-  updated_validators,
-  voters,
-  epoch
-);
+const inputsJson = generateInputs(validators, voters, epoch);
 
 fs.writeFileSync(
   path.join(__dirname, "private-input.json"),

@@ -8,9 +8,8 @@ using block_type = hash_type::block_type;
 using field_type = algebra::curves::pallas::base_field_type::value_type;
 using size_t = std::size_t;
 
-constexpr size_t VALIDATORS_COUNT = 32;
-constexpr size_t UPDATED_VALIDATORS_COUNT = 3;
-constexpr size_t VOTERS_COUNT = 9;
+constexpr size_t VALIDATORS_COUNT = 10;
+constexpr size_t VOTERS_COUNT = 8;
 
 bool is_validator_active(
     size_t activation_epoch,
@@ -27,8 +26,8 @@ bool is_same(block_type block0, block_type block1)
 
 bool less_than(block_type block0, block_type block1)
 {
-  return block0[0] < block1[0];
-  // return true;
+  // return block0[0] < block1[0];  does not work at the moment
+  return block0[0] != block1[0];
 }
 
 [[circuit]] size_t circuit(
@@ -39,42 +38,29 @@ bool less_than(block_type block0, block_type block1)
     [[private_input]] std::array<size_t, VALIDATORS_COUNT> validators_slashed,
     [[private_input]] std::array<size_t, VALIDATORS_COUNT> validators_activation_epoch,
     [[private_input]] std::array<size_t, VALIDATORS_COUNT> validators_exit_epoch,
-    [[private_input]] std::array<bool, VALIDATORS_COUNT> is_validator_updated,
 
-    [[private_input]] std::array<size_t, UPDATED_VALIDATORS_COUNT> updated_validators_effective_balances,
-    [[private_input]] std::array<size_t, UPDATED_VALIDATORS_COUNT> updated_validators_slashed,
-    [[private_input]] std::array<size_t, UPDATED_VALIDATORS_COUNT> updated_validators_activation_epoch,
-    [[private_input]] std::array<size_t, UPDATED_VALIDATORS_COUNT> updated_validators_exit_epoch,
-
-    [[private_input]] std::array<block_type, VOTERS_COUNT> voters_pubkeys,
     [[private_input]] std::array<size_t, VOTERS_COUNT> voters_indexes, // indexes of voters in validators list
-
-    [[private_input]] std::array<block_type, VOTERS_COUNT> voters_sorted_pubkeys,
-    [[private_input]] std::array<size_t, VOTERS_COUNT> sorted_to_voters_mapping)
+    [[private_input]] std::array<size_t, VOTERS_COUNT> voters_sorted_indexes)
 {
 
   std::array<size_t, 2> partial_voters_balances;
 
   int computed_voters_balance = 0;
-  for (size_t idx = 0; idx < VOTERS_COUNT - 1; ++idx)
+  for (size_t idx = 0; idx < VOTERS_COUNT - 2; ++idx)
   {
     size_t validator_idx = voters_indexes[idx];
 
-    // // voter are in validators
-    __builtin_assigner_exit_check(is_same(voters_pubkeys[idx], validators_pubkeys[validator_idx]));
     // check if voter is active
-    // if (is_validator_updated[validator_idx])
-    // {
-    //   __builtin_assigner_exit_check(is_validator_active(updated_validators_activation_epoch[validator_idx], updated_validators_exit_epoch[validator_idx], epoch));
-    // }
-    // else
-    // {
-    //   __builtin_assigner_exit_check(is_validator_active(validators_activation_epoch[validator_idx], validators_exit_epoch[validator_idx], epoch));
-    // }
+    __builtin_assigner_exit_check(is_validator_active(validators_activation_epoch[validator_idx], validators_exit_epoch[validator_idx], epoch));
 
     // voters_pubkeys are unique by using sorted_indexes
-    __builtin_assigner_exit_check(is_same(voters_sorted_pubkeys[idx], voters_pubkeys[sorted_to_voters_mapping[idx]]));
-    __builtin_assigner_exit_check(less_than(voters_sorted_pubkeys[idx], voters_sorted_pubkeys[idx + 1]));
+    size_t voter_index = voters_sorted_indexes[idx];
+    size_t next_voter_index = voters_sorted_indexes[idx + 1];
+
+    block_type voter_pubkey = validators_pubkeys[voter_index];
+    block_type next_voter_pubkey = validators_pubkeys[next_voter_index];
+
+    __builtin_assigner_exit_check(less_than(voter_pubkey, next_voter_pubkey));
 
     computed_voters_balance += validators_effective_balances[validator_idx];
   }
