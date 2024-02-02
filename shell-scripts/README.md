@@ -1,5 +1,9 @@
 # Shell scripts to build proofs.
 
+Run this scripts in /zkllvm root.
+Circuits and private/public inputs should be placed in src.
+Use circuits from final-exps folder, place, run, replace with others.
+
 ### Auto scripts with time measure
 
 #### auto-single-thread.sh and auto-multi-thread.sh
