@@ -29,7 +29,8 @@ validate_path([[private_input]] std::array<typename hashes::sha2<256>::block_typ
   {
     return true;
 
-    return false;
-    // __builtin_assigner_exit_check(is_same(subroot, root));
+        // __builtin_assigner_exit_check(is_same(subroot, root));
   }
+
+  return false;
 }
