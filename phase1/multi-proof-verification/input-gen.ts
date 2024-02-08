@@ -61,5 +61,5 @@ const writeToJSONFile = (n: number) => {
 };
 
 // Example usage
-const N = 700; // Replace with the desired number
+const N = 1200; // Replace with the desired number
 writeToJSONFile(N);
