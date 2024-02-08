@@ -216,8 +216,8 @@ const generateInputs = (
   return input;
 };
 
-const validators = 100000;
-const voters = 80000;
+const validators = 1;
+const voters = 0;
 const epoch = 3;
 
 const inputsJson = generateInputs(validators, voters, epoch);
