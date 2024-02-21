@@ -10,7 +10,7 @@ bool is_same(typename hashes::sha2<256>::block_type block0,
   return block0[0] == block1[0] && block0[1] == block1[1];
 }
 
-constexpr std::size_t HASHES = 825;
+constexpr std::size_t HASHES = 5;
 
 [[circuit]] bool
 validate_path([[private_input]] std::array<typename hashes::sha2<256>::block_type, HASHES> merkle_path,
