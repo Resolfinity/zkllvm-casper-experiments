@@ -56,12 +56,12 @@ struct EvaluateRootResult
 };
 
 template <size_t size>
-EvaluateRootResult evaluate_root_layer0(
+EvaluateRootResult get_validator_leaf(
     typename std::array<block_type, size>::iterator pubkeys_begin,
-    typename std::array<field_type, size>::iterator effective_balances_begin,
-    typename std::array<field_type, size>::iterator slashed_begin,
-    typename std::array<field_type, size>::iterator activation_epoch_begin,
-    typename std::array<field_type, size>::iterator exit_epoch_begin,
+    typename std::array<uint64_t_be, size>::iterator effective_balances_begin,
+    typename std::array<uint64_t_be, size>::iterator slashed_begin,
+    typename std::array<uint64_t_be, size>::iterator activation_epoch_begin,
+    typename std::array<uint64_t_be, size>::iterator exit_epoch_begin,
     uint64_t_be epoch,
     std::size_t distance,
     std::size_t offset,
@@ -78,30 +78,30 @@ EvaluateRootResult evaluate_root_layer0(
       typename std::array<field_type, size>::iterator layer0_current = layer0_begin + i + offset;
 
       typename std::array<block_type, size>::iterator pubkeys_current = pubkeys_begin + i + offset;
-      typename std::array<field_type, size>::iterator effective_balances_current = effective_balances_begin + i + offset;
-      typename std::array<field_type, size>::iterator slashed_current = slashed_begin + i + offset;
-      typename std::array<field_type, size>::iterator activation_epoch_current = activation_epoch_begin + i + offset;
-      typename std::array<field_type, size>::iterator exit_epoch_current = exit_epoch_begin + i + offset;
+      typename std::array<uint64_t_be, size>::iterator effective_balances_current = effective_balances_begin + i + offset;
+      typename std::array<uint64_t_be, size>::iterator slashed_current = slashed_begin + i + offset;
+      typename std::array<uint64_t_be, size>::iterator activation_epoch_current = activation_epoch_begin + i + offset;
+      typename std::array<uint64_t_be, size>::iterator exit_epoch_current = exit_epoch_begin + i + offset;
 
       block_type pubkey = *pubkeys_current;
       field_type validator_leaf_0 = hash<hashes::poseidon>(pubkey[0], pubkey[1]);
-      field_type validator_leaf_1 = hash<hashes::poseidon>(*effective_balances_current, *slashed_current);
-      field_type validator_leaf_2 = hash<hashes::poseidon>(*activation_epoch_current, *exit_epoch_current);
+      field_type validator_leaf_1 = hash<hashes::poseidon>(uint_to_field(*effective_balances_current), uint_to_field(*slashed_current));
+      field_type validator_leaf_2 = hash<hashes::poseidon>(uint_to_field(*activation_epoch_current), uint_to_field(*exit_epoch_current));
       field_type validator_leaf_3 = zero_poseidon;
       field_type validator_leaf_01 = hash<hashes::poseidon>(validator_leaf_0, validator_leaf_1);
       field_type validator_leaf_23 = hash<hashes::poseidon>(validator_leaf_2, validator_leaf_3);
       field_type validator_leaf = hash<hashes::poseidon>(validator_leaf_01, validator_leaf_23);
 
       typename std::array<block_type, size>::iterator next_pubkeys_current = pubkeys_begin + i + stride + offset;
-      typename std::array<field_type, size>::iterator next_effective_balances_current = effective_balances_begin + i + stride + offset;
-      typename std::array<field_type, size>::iterator next_slashed_current = slashed_begin + i + stride + offset;
-      typename std::array<field_type, size>::iterator next_activation_epoch_current = activation_epoch_begin + i + stride + offset;
-      typename std::array<field_type, size>::iterator next_exit_epoch_current = exit_epoch_begin + i + stride + offset;
+      typename std::array<uint64_t_be, size>::iterator next_effective_balances_current = effective_balances_begin + i + stride + offset;
+      typename std::array<uint64_t_be, size>::iterator next_slashed_current = slashed_begin + i + stride + offset;
+      typename std::array<uint64_t_be, size>::iterator next_activation_epoch_current = activation_epoch_begin + i + stride + offset;
+      typename std::array<uint64_t_be, size>::iterator next_exit_epoch_current = exit_epoch_begin + i + stride + offset;
 
       block_type next_pubkey = *next_pubkeys_current;
       field_type next_validator_leaf_0 = hash<hashes::poseidon>(next_pubkey[0], next_pubkey[1]);
-      field_type next_validator_leaf_1 = hash<hashes::poseidon>(*effective_balances_current, *slashed_current);
-      field_type next_validator_leaf_2 = hash<hashes::poseidon>(*activation_epoch_current, *exit_epoch_current);
+      field_type next_validator_leaf_1 = hash<hashes::poseidon>(uint_to_field(*effective_balances_current), uint_to_field(*slashed_current));
+      field_type next_validator_leaf_2 = hash<hashes::poseidon>(uint_to_field(*activation_epoch_current), uint_to_field(*exit_epoch_current));
       field_type next_validator_leaf_3 = zero_poseidon;
       field_type next_validator_leaf_01 = hash<hashes::poseidon>(next_validator_leaf_0, next_validator_leaf_1);
       field_type next_validator_leaf_23 = hash<hashes::poseidon>(next_validator_leaf_2, next_validator_leaf_3);
@@ -112,24 +112,24 @@ EvaluateRootResult evaluate_root_layer0(
       // store nodes in pubkeys array
       *layer0_current = paired_validarors;
 
-      // // calculate sum_balance for this piece
-      // if (stride == 1)
-      // {
-      //   if (*activation_epoch_begin <= epoch && *exit_epoch_begin > epoch)
-      //     sum_balance += *effective_balances_begin;
-      //   if (*next_activation_epoch_current <= epoch && *next_exit_epoch_current > epoch)
-      //     sum_balance += *next_effective_balances_current;
-      // }
+      // calculate sum_balance for this piece
+      if (stride == 1)
+      {
+        if (*activation_epoch_begin <= epoch && *exit_epoch_begin > epoch)
+          sum_balance += *effective_balances_begin;
+        if (*next_activation_epoch_current <= epoch && *next_exit_epoch_current > epoch)
+          sum_balance += *next_effective_balances_current;
+      }
     }
     stride *= 2;
   }
   return {*layer0_begin, sum_balance};
 }
 
-constexpr size_t VALIDATORS_TREE_HEIGHT_BEACON = 13;
+constexpr size_t VALIDATORS_TREE_HEIGHT_BEACON = 15;
 constexpr size_t VALIDATORS_MAX_COUNT_BEACON = 1 << VALIDATORS_TREE_HEIGHT_BEACON;
 
-constexpr size_t VALIDATORS_TREE_HEIGHT_POSEIDON = 13;
+constexpr size_t VALIDATORS_TREE_HEIGHT_POSEIDON = 15;
 constexpr size_t VALIDATORS_MAX_COUNT_POSEIDON = 1 << VALIDATORS_TREE_HEIGHT_POSEIDON;
 
 constexpr size_t VALIDATOR_FIELDS_BEACON = 8;
@@ -150,14 +150,12 @@ constexpr size_t MAX_VALIDATORS_CHANGED = 4;
 
     [[private_input]] std::array<block_type, VALIDATORS_MAX_COUNT_BEACON> validators_pubkeys, // stored in poseidon
     [[private_input]] std::array<block_type, VALIDATORS_MAX_COUNT_BEACON> validators_withdrawal_credentials,
-    [[private_input]] std::array<field_type, VALIDATORS_MAX_COUNT_BEACON> validators_effective_balances, // stored in poseidon
-    [[private_input]] std::array<field_type, VALIDATORS_MAX_COUNT_BEACON> validators_slashed,            // stored in poseidon
-    [[private_input]] std::array<field_type, VALIDATORS_MAX_COUNT_BEACON> validators_activation_eligibility_epoch,
-    [[private_input]] std::array<field_type, VALIDATORS_MAX_COUNT_BEACON> validators_activation_epoch, // stored in poseidon
-    [[private_input]] std::array<field_type, VALIDATORS_MAX_COUNT_BEACON> validators_exit_epoch,       // stored in poseidon
-    [[private_input]] std::array<field_type, VALIDATORS_MAX_COUNT_BEACON> validators_withdrawable_epoch,
-    // [[private_input]] std::array<field_type, VALIDATORS_MAX_COUNT_BEACON> validators_leaves, // pre-computed hashes
-
+    [[private_input]] std::array<uint64_t_be, VALIDATORS_MAX_COUNT_BEACON> validators_effective_balances, // stored in poseidon
+    [[private_input]] std::array<uint64_t_be, VALIDATORS_MAX_COUNT_BEACON> validators_slashed,            // stored in poseidon
+    [[private_input]] std::array<uint64_t_be, VALIDATORS_MAX_COUNT_BEACON> validators_activation_eligibility_epoch,
+    [[private_input]] std::array<uint64_t_be, VALIDATORS_MAX_COUNT_BEACON> validators_activation_epoch, // stored in poseidon
+    [[private_input]] std::array<uint64_t_be, VALIDATORS_MAX_COUNT_BEACON> validators_exit_epoch,       // stored in poseidon
+    [[private_input]] std::array<uint64_t_be, VALIDATORS_MAX_COUNT_BEACON> validators_withdrawable_epoch,
     // [[private_input]] std::array<uint64_t_be, VALIDATORS_MAX_COUNT_BEACON> validators_indices,
 
     // [[private_input]] size_t actual_changed_validator_count,
@@ -213,7 +211,7 @@ constexpr size_t MAX_VALIDATORS_CHANGED = 4;
   */
 
   // recompute old poseidon root
-  std::array<field_type, 8192> layer0;
+  std::array<field_type, 32768> layer0;
   std::array<field_type, 2> layer1;
   std::array<uint64_t_be, 2> balances_subtotals;
 
@@ -227,14 +225,14 @@ constexpr size_t MAX_VALIDATORS_CHANGED = 4;
 #pragma zk_multi_prover 0
   {
     auto result =
-        evaluate_root_layer0<8192>(
+        evaluate_root_layer0<32768>(
             pubkeys_begin,
             effective_balances_begin,
             slashed_begin,
             activation_epoch_begin,
             exit_epoch_begin,
             epoch,
-            4096,
+            16384,
             0,
             layer0_begin);
 
@@ -245,15 +243,15 @@ constexpr size_t MAX_VALIDATORS_CHANGED = 4;
 #pragma zk_multi_prover 1
   {
     auto result =
-        evaluate_root_layer0<8192>(
+        evaluate_root_layer0<32768>(
             pubkeys_begin,
             effective_balances_begin,
             slashed_begin,
             activation_epoch_begin,
             exit_epoch_begin,
             epoch,
-            4096,
-            4096,
+            16384,
+            16384,
             layer0_begin);
 
     layer1[1] = result.root;

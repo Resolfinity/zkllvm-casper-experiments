@@ -56,7 +56,7 @@ struct EvaluateRootResult
 };
 
 template <size_t size>
-EvaluateRootResult evaluate_root_layer0(
+EvaluateRootResult get_validator_leaf(
     typename std::array<block_type, size>::iterator pubkeys_begin,
     typename std::array<uint64_t_be, size>::iterator effective_balances_begin,
     typename std::array<uint64_t_be, size>::iterator slashed_begin,
@@ -126,10 +126,10 @@ EvaluateRootResult evaluate_root_layer0(
   return {*layer0_begin, sum_balance};
 }
 
-constexpr size_t VALIDATORS_TREE_HEIGHT_BEACON = 15;
+constexpr size_t VALIDATORS_TREE_HEIGHT_BEACON = 14;
 constexpr size_t VALIDATORS_MAX_COUNT_BEACON = 1 << VALIDATORS_TREE_HEIGHT_BEACON;
 
-constexpr size_t VALIDATORS_TREE_HEIGHT_POSEIDON = 15;
+constexpr size_t VALIDATORS_TREE_HEIGHT_POSEIDON = 14;
 constexpr size_t VALIDATORS_MAX_COUNT_POSEIDON = 1 << VALIDATORS_TREE_HEIGHT_POSEIDON;
 
 constexpr size_t VALIDATOR_FIELDS_BEACON = 8;
@@ -156,6 +156,7 @@ constexpr size_t MAX_VALIDATORS_CHANGED = 4;
     [[private_input]] std::array<uint64_t_be, VALIDATORS_MAX_COUNT_BEACON> validators_activation_epoch, // stored in poseidon
     [[private_input]] std::array<uint64_t_be, VALIDATORS_MAX_COUNT_BEACON> validators_exit_epoch,       // stored in poseidon
     [[private_input]] std::array<uint64_t_be, VALIDATORS_MAX_COUNT_BEACON> validators_withdrawable_epoch,
+
     // [[private_input]] std::array<uint64_t_be, VALIDATORS_MAX_COUNT_BEACON> validators_indices,
 
     // [[private_input]] size_t actual_changed_validator_count,
@@ -211,7 +212,7 @@ constexpr size_t MAX_VALIDATORS_CHANGED = 4;
   */
 
   // recompute old poseidon root
-  std::array<field_type, 32768> layer0;
+  std::array<field_type, 16384> layer0;
   std::array<field_type, 2> layer1;
   std::array<uint64_t_be, 2> balances_subtotals;
 
@@ -225,14 +226,14 @@ constexpr size_t MAX_VALIDATORS_CHANGED = 4;
 #pragma zk_multi_prover 0
   {
     auto result =
-        evaluate_root_layer0<32768>(
+        evaluate_root_layer0<16384>(
             pubkeys_begin,
             effective_balances_begin,
             slashed_begin,
             activation_epoch_begin,
             exit_epoch_begin,
             epoch,
-            16384,
+            8192,
             0,
             layer0_begin);
 
@@ -243,15 +244,15 @@ constexpr size_t MAX_VALIDATORS_CHANGED = 4;
 #pragma zk_multi_prover 1
   {
     auto result =
-        evaluate_root_layer0<32768>(
+        evaluate_root_layer0<16384>(
             pubkeys_begin,
             effective_balances_begin,
             slashed_begin,
             activation_epoch_begin,
             exit_epoch_begin,
             epoch,
-            16384,
-            16384,
+            8192,
+            8192,
             layer0_begin);
 
     layer1[1] = result.root;

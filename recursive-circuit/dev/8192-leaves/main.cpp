@@ -56,7 +56,7 @@ struct EvaluateRootResult
 };
 
 template <size_t size>
-EvaluateRootResult evaluate_root_layer0(
+EvaluateRootResult get_validator_leaf(
     typename std::array<block_type, size>::iterator pubkeys_begin,
     typename std::array<field_type, size>::iterator effective_balances_begin,
     typename std::array<field_type, size>::iterator slashed_begin,
